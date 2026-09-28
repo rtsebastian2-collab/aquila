@@ -92,6 +92,7 @@ table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;p
 th{color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}td{word-break:break-word}
 .riesgo-Bajo{color:var(--ok);font-weight:600}.riesgo-Medio{color:var(--medio);font-weight:600}.riesgo-Alto{color:var(--crit);font-weight:600}
 .pasos{background:var(--soft);border-radius:10px;padding:12px 18px}footer{color:var(--mut);font-size:12px;margin-top:40px}
+.marca{display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.04em;color:var(--mut);margin-bottom:4px}.marca svg{width:28px;height:28px;flex:none}
 .grafico svg{width:100%;height:auto;display:block}.grafico .eje{stroke:var(--bd);stroke-width:1}.grafico text{fill:var(--mut);font-size:11px}
 .grafico .lento{fill:var(--lento)}.leyenda{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--mut);margin-top:6px}
 .leyenda i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}

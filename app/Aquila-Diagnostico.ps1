@@ -249,8 +249,9 @@ function Buscar-Duplicados([string[]]$Carpetas, [long]$MinBytes = 1MB, [int]$Seg
     $reloj = [Diagnostics.Stopwatch]::StartNew()
     $vistos = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
     $porTam = @{}
-    $rxOmitirDir = '^(node_modules|\.git|\.svn|__pycache__|\.venv|venv|AppData|\$RECYCLE\.BIN|\.vs|bin|obj)$'
-    $rxOmitirExt = '\.(ost|pst|lnk|ini|tmp|sys|dll|exe)$'
+    # Carpetas y archivos de programación: sus «copias» son normales y borrarlas rompería proyectos
+    $rxOmitirDir = '^(node_modules|\.git|\.svn|__pycache__|\.venv|venv|env|AppData|\$RECYCLE\.BIN|\.vs|\.idea|\.gradle|bin|obj|dist|build|build_exe|build_tmp|win-unpacked|site-packages|Lib|target|out|release|debug)$'
+    $rxOmitirExt = '\.(ost|pst|lnk|ini|tmp|sys|dll|exe|pyd|pyc|so|jar|node|lib|pdb|msi)$'
     foreach ($c in $Carpetas | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -Unique) {
         $pila = New-Object 'System.Collections.Generic.Stack[object]'
         $pila.Push(@($c, 0))

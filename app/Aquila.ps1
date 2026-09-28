@@ -409,27 +409,32 @@ function Descargar-Texto([string]$archivo) {
     $u = "https://raw.githubusercontent.com/$AquilaRepo/main/$($archivo)?t=$([DateTime]::UtcNow.Ticks)"
     ([string](Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 8).Content).TrimStart([char]0xFEFF)
 }
+# Pide el archivo a la API de GitHub (sin caché); si falla, usa la copia pública (tarda ~5 min en renovarse)
+function Descargar-Fresco([string]$archivo) {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    try {
+        $w = Invoke-WebRequest -Uri "https://api.github.com/repos/$AquilaRepo/contents/$($archivo)?ref=main" -Headers @{ Accept = 'application/vnd.github.raw'; 'User-Agent' = 'Aquila' } -UseBasicParsing -TimeoutSec 8
+        $txt = if ($w.Content -is [byte[]]) { [Text.Encoding]::UTF8.GetString($w.Content) } else { [string]$w.Content }
+        $txt.TrimStart([char]0xFEFF)
+    } catch { Descargar-Texto $archivo }
+}
 function Buscar-Actualizacion([switch]$Manual) {
-    try { $remota = ([string](Descargar-Texto 'version.txt')).Trim() }
+    try { $remota = ([string](Descargar-Fresco 'version.txt')).Trim() }
     catch { if ($Manual) { Mensaje 'No se pudo revisar si hay actualizaciones. Revisa tu conexión a internet.' 'Actualizar' 'Warning' }; return }
     $hay = $false
     try { $hay = [version]$remota -gt [version]$AquilaVersion } catch {}
-    if (-not $hay) { if ($Manual) { Mensaje "Ya tienes la última versión de Aquila ($AquilaVersion)." 'Actualizar' }; return }
+    if (-not $hay) { if ($Manual) { Mensaje "Ya tienes la última versión de Aquila ($AquilaVersion).`n`nVersión publicada en GitHub: $remota" 'Actualizar' }; return }
     $ocupado = ($script:Proc -and -not $script:Proc.HasExited) -or ($script:ProcVig -and -not $script:ProcVig.HasExited)
     if ($ocupado) { $lblEstado.Text = "Hay una nueva versión de Aquila ($remota). Actualiza cuando termine lo que está en curso."; return }
     $r = Mensaje "Hay una nueva versión de Aquila: $remota (tienes $AquilaVersion).`n`n¿Actualizar ahora? Aquila se cerrará y se abrirá sola otra vez en unos segundos. Tus informes se conservan." 'Actualización disponible' 'Information' 'YesNo'
     if ($r -ne 'Yes') { $lblEstado.Text = "Actualización $remota disponible: botón «Actualizar»."; return }
     try {
         $tmp = Join-Path $env:TEMP "aquila-instalar-$([DateTime]::Now.Ticks).ps1"
-        [IO.File]::WriteAllText($tmp, (Descargar-Texto 'instalar.ps1'), (New-Object Text.UTF8Encoding $true))
+        [IO.File]::WriteAllText($tmp, (Descargar-Fresco 'instalar.ps1'), (New-Object Text.UTF8Encoding $true))
     } catch { Mensaje "No se pudo descargar la actualización:`n$($_.Exception.Message)" 'Actualizar' 'Warning'; return }
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = 'powershell.exe'
-    $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$tmp`""
-    $psi.UseShellExecute = $false
-    $psi.EnvironmentVariables['AQUILA_ACTUALIZAR'] = '1'
-    $psi.EnvironmentVariables['AQUILA_ESPERAR_PID'] = "$PID"
-    [void][System.Diagnostics.Process]::Start($psi)
+    # Ventana visible «AQUILA · Actualizando»; hereda estas variables y los permisos de administrador
+    $env:AQUILA_ACTUALIZAR = '1'; $env:AQUILA_ESPERAR_PID = "$PID"
+    Start-Process -FilePath 'powershell.exe' -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$tmp`""
     $script:SaliendoPorActualizacion = $true
     $form.Close()
 }
