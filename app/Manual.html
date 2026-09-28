@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual de Aquila</title>
+<link rel="icon" href="aquila.svg">
+<style>
+:root{--bg:#f3f5f9;--card:#fff;--tx:#1b2330;--mut:#5d6773;--bd:#e2e8f0;--marino:#0b1b3f;--marino2:#1e3a8a;--oro:#f2b705;--ok:#2b7a3a;--alerta:#d9480f;--soft:#eef2f7}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1320;--card:#161d2c;--tx:#e6e9ef;--mut:#9aa4b2;--bd:#263045;--soft:#1c2536;--ok:#5fbf6e;--alerta:#ff8a4c}}
+:root[data-theme="dark"]{--bg:#0e1320;--card:#161d2c;--tx:#e6e9ef;--mut:#9aa4b2;--bd:#263045;--soft:#1c2536;--ok:#5fbf6e;--alerta:#ff8a4c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.6 "Segoe UI",system-ui,sans-serif}
+.hero{background:linear-gradient(135deg,var(--marino),var(--marino2));color:#fff;padding:40px 16px 36px}
+.hero .in{max-width:960px;margin:0 auto;display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.hero img{width:96px;height:96px}
+.hero h1{margin:0;font-size:40px;letter-spacing:.02em}
+.hero p{margin:4px 0 0;color:#cbd5e1;font-size:18px}
+nav{background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:2}
+nav .in{max-width:960px;margin:0 auto;padding:10px 16px;display:flex;gap:6px 18px;flex-wrap:wrap;font-size:14px}
+nav a{color:var(--mut);text-decoration:none}nav a:hover{color:var(--tx)}
+main{max-width:960px;margin:0 auto;padding:12px 16px 60px}
+h2{font-size:24px;margin:40px 0 12px;color:var(--tx);display:flex;align-items:center;gap:10px}
+h2 .n{background:var(--oro);color:var(--marino);width:32px;height:32px;border-radius:50%;display:inline-grid;place-items:center;font-size:16px;flex:none}
+h3{font-size:17px;margin:18px 0 6px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px 20px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.grid .card{margin:0}
+.card b.t{display:block;font-size:16px;margin-bottom:4px}
+code,kbd{font-family:Consolas,monospace;background:var(--soft);border:1px solid var(--bd);border-radius:6px;padding:1px 6px;font-size:14px}
+pre{background:#0b1220;color:#e2e8f0;border-radius:10px;padding:14px 16px;overflow-x:auto;font:14px/1.5 Consolas,monospace;margin:8px 0}
+ol li,ul li{margin:6px 0}
+.ok{border-left:5px solid var(--ok)}.alerta{border-left:5px solid var(--alerta)}
+.nota{color:var(--mut);font-size:14px}
+table{border-collapse:collapse;width:100%;font-size:15px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd);vertical-align:top}
+th{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.tabla{overflow-x:auto}
+footer{color:var(--mut);font-size:13px;text-align:center;margin-top:50px}
+</style>
+</head>
+<body>
+<header class="hero"><div class="in">
+  <img src="logo.png" alt="Símbolo de Aquila: un águila">
+  <div><h1>Aquila</h1><p>Diagnóstico y optimización de tu computadora · Manual de uso</p></div>
+</div></header>
+<nav><div class="in">
+  <a href="#que-es">Qué es</a><a href="#requisitos">Requisitos</a><a href="#instalar">Instalar</a><a href="#usar">Cómo se usa</a>
+  <a href="#arreglos">Arreglos</a><a href="#vigilar">Vigilar</a><a href="#comparar">Comparar PCs</a><a href="#seguridad">Seguridad</a>
+  <a href="#actualizar">Actualizar</a><a href="#problemas">Problemas</a>
+</div></nav>
+<main>
+
+<h2 id="que-es"><span class="n">1</span>¿Qué es Aquila?</h2>
+<p>Aquila revisa tu computadora o laptop, <b>te explica en palabras simples por qué está lenta</b> y te ofrece arreglos para que vuelva a funcionar como cuando la compraste. Antes de cambiar cualquier cosa, siempre te dice <b>qué hace</b>, <b>por qué</b> y <b>si afecta algo</b>, y te pide confirmación.</p>
+<div class="grid">
+  <div class="card"><b class="t">🔍 Diagnostica</b>Procesador, memoria, disco (y su salud), programas al encender, OneDrive, Outlook, antivirus y espacio.</div>
+  <div class="card"><b class="t">🧹 Libera espacio</b>Papelera, temporales, Windows.old, cachés, restos de programas y archivos duplicados.</div>
+  <div class="card"><b class="t">⚡ Acelera</b>Programas al encender, plan de energía, efectos visuales, correo de Outlook y reparación de Windows.</div>
+  <div class="card"><b class="t">👁 Vigila</b>Se queda midiendo y atrapa al programa culpable justo cuando la PC se pone lenta.</div>
+</div>
+
+<h2 id="requisitos"><span class="n">2</span>Requisitos</h2>
+<div class="card">
+  <ul>
+    <li><b>Windows 10 o Windows 11</b> (computadoras de escritorio y laptops).</li>
+    <li>Conexión a internet solo para instalar y actualizar.</li>
+    <li>Permiso de administrador en la PC (Aquila lo pide al abrirse).</li>
+    <li>No hay que instalar nada más: usa PowerShell, que ya viene con Windows.</li>
+  </ul>
+  <p class="nota">No funciona en Windows 7/8, Mac ni Linux.</p>
+</div>
+
+<h2 id="instalar"><span class="n">3</span>Instalar en una computadora</h2>
+<ol>
+  <li>Abre el menú Inicio, escribe <b>PowerShell</b> y ábrelo (no hace falta como administrador).</li>
+  <li>Copia y pega este comando y presiona <kbd>Enter</kbd>:
+<pre>irm https://raw.githubusercontent.com/rtsebastian2-collab/aquila/main/instalar.ps1 | iex</pre></li>
+  <li>En unos segundos aparece en tu <b>escritorio</b> el icono del águila <b>«Aquila»</b> y se abre este manual.</li>
+</ol>
+<p class="nota">Aquila se instala en <code>%LOCALAPPDATA%\Aquila</code>. También queda en el menú Inicio, junto con este manual y «Desinstalar Aquila».</p>
+
+<h2 id="usar"><span class="n">4</span>Cómo se usa</h2>
+<ol>
+  <li>Doble clic en el icono <b>Aquila</b> del escritorio y acepta el permiso de administrador.</li>
+  <li>Presiona el botón dorado <b>▶ Diagnosticar</b>. Tarda unos 3 minutos; puedes seguir usando la PC.</li>
+  <li>Arriba a la derecha verás el <b>puntaje de salud</b> (0 a 100).</li>
+  <li>En la pestaña <b>Diagnóstico</b> está todo lo encontrado, ordenado por gravedad. Haz clic en cada uno para leer <b>por qué pasa</b> y <b>qué hacer</b>.</li>
+  <li>Ve a la pestaña <b>Arreglos</b> para solucionarlo (siguiente sección).</li>
+  <li>«Ver informe» abre un informe completo en el navegador; «Mis informes» abre la carpeta <code>Documentos\Aquila\Informes</code>.</li>
+</ol>
+<div class="card"><div class="tabla"><table>
+  <tr><th>Color</th><th>Significado</th></tr>
+  <tr><td><b style="color:#c62828">Crítico</b></td><td>Problema grave: atender ya (por ejemplo, disco fallando).</td></tr>
+  <tr><td><b style="color:#d9480f">Alto</b></td><td>Causa importante de lentitud.</td></tr>
+  <tr><td><b style="color:#a67c00">Medio</b></td><td>Conviene arreglarlo.</td></tr>
+  <tr><td><b style="color:#1c64b8">Info</b></td><td>Para que lo sepas; decides tú.</td></tr>
+  <tr><td><b style="color:#2b7a3a">Bien</b></td><td>Todo en orden en ese punto.</td></tr>
+</table></div></div>
+
+<h2 id="arreglos"><span class="n">5</span>Aplicar arreglos</h2>
+<ol>
+  <li>En la pestaña <b>Arreglos</b>, haz clic en cada arreglo para leer <b>qué hace</b>, <b>por qué</b> y <b>¿afecta algo?</b></li>
+  <li>Marca las casillas de los que quieras. El botón <b>«Marcar los de riesgo bajo»</b> marca los más seguros.</li>
+  <li>Presiona <b>«Aplicar los marcados…»</b>. Aquila te muestra un resumen final; confirma con <b>«Sí, aplicar»</b>.</li>
+  <li>Algunos te piden elegir: qué <b>programas de inicio</b> desactivar y qué <b>copias duplicadas</b> enviar a la Papelera.</li>
+  <li>Si un programa debe cerrarse (Chrome, Teams, Outlook), Aquila te avisa antes.</li>
+  <li>Al terminar te ofrece <b>diagnosticar otra vez</b> para comparar el antes y el después. Recomendado: <b>reiniciar</b> la PC.</li>
+</ol>
+<div class="card ok"><b>Riesgo bajo</b>: no pierdes nada útil (temporales, cachés, papelera, instaladores de actualizaciones, etc.).<br>
+<b>Riesgo medio</b>: tiene algún efecto que conviene leer (por ejemplo, Outlook vuelve a descargar los últimos 6 meses de correo).</div>
+<p>¿Desactivaste un programa de inicio y lo necesitas? Botón <b>«Restaurar programas de inicio»</b>.</p>
+
+<h2 id="vigilar"><span class="n">6</span>Vigilar (cuando se pone lenta a ratos)</h2>
+<ol>
+  <li>Pestaña <b>Vigilar</b> → elige los minutos (por ejemplo 30) → <b>«Empezar a vigilar»</b>.</li>
+  <li>Usa la PC normalmente. Verás en vivo el procesador, el disco y la memoria.</li>
+  <li>Cada vez que la PC se pone lenta, Aquila anota la hora y <b>qué programa lo causó</b>.</li>
+  <li>Al final, el informe muestra un gráfico con los momentos lentos y el <b>ranking de culpables</b> con su explicación.</li>
+</ol>
+<p class="nota">Consejo: empieza a vigilar justo antes de lo que suele ponerse lento (abrir Outlook, primera hora de la mañana, sincronizar archivos).</p>
+
+<h2 id="comparar"><span class="n">7</span>Comparar dos computadoras</h2>
+<p>Muy útil cuando dos PCs iguales no rinden igual:</p>
+<ol>
+  <li>Diagnostica la PC que anda bien. En <b>Mis informes</b> queda un archivo <code>Diagnostico_NOMBRE_fecha.json</code>.</li>
+  <li>Lleva ese archivo a la PC lenta (correo, USB, WhatsApp).</li>
+  <li>En la PC lenta: <b>«Comparar con otra PC…»</b> → elige el archivo → <b>Diagnosticar</b>. El informe mostrará ambas lado a lado.</li>
+</ol>
+
+<h2 id="seguridad"><span class="n">8</span>Seguridad: qué hace y qué NO hace</h2>
+<div class="grid">
+  <div class="card ok"><b class="t">✔ Siempre</b>Explica y pide confirmación antes de cada cambio. Crea un <b>punto de restauración</b> de Windows antes del primer cambio. Anota todo en un registro. Los duplicados van a la <b>Papelera</b> (recuperables).</div>
+  <div class="card alerta"><b class="t">✘ Nunca</b>Borra tus documentos, fotos o archivos personales. Toca los archivos de correo <b>PST</b> (son tu única copia). Borra carpetas de «restos de programas» por su cuenta: solo te las muestra.</div>
+</div>
+<p class="nota">Para deshacer cambios del sistema: Inicio → escribe «Crear un punto de restauración» → Restaurar sistema → elige «Aquila - antes de optimizar».</p>
+
+<h2 id="actualizar"><span class="n">9</span>Actualizar y desinstalar</h2>
+<ul>
+  <li><b>Automático:</b> cada vez que abres Aquila revisa si hay una versión nueva en GitHub y te pregunta si quieres actualizar. Se cierra, se actualiza y se vuelve a abrir sola.</li>
+  <li><b>Manual:</b> botón <b>«⟳ Actualizar»</b>, o vuelve a ejecutar el comando de instalación.</li>
+  <li><b>Desinstalar:</b> menú Inicio → Aquila → <b>Desinstalar Aquila</b>. Tus informes se conservan.</li>
+</ul>
+
+<h2 id="problemas"><span class="n">10</span>Problemas frecuentes</h2>
+<div class="card">
+  <h3>El comando de instalación da error</h3>
+  <p>Revisa tu conexión a internet. Si tu empresa bloquea scripts, pide a sistemas que permita ejecutar PowerShell para tu usuario.</p>
+  <h3>Dice «SIN permisos de administrador»</h3>
+  <p>Abre Aquila desde su icono del escritorio y responde <b>Sí</b> cuando Windows pregunte. Sin esos permisos algunas mediciones y arreglos no están disponibles.</p>
+  <h3>El antivirus avisa o bloquea</h3>
+  <p>Aquila usa scripts de PowerShell; algunos antivirus los revisan con desconfianza. Puedes ver todo el código en GitHub.</p>
+  <h3>Outlook tarda después del arreglo de correo</h3>
+  <p>Es normal la primera vez: está descargando los últimos 6 meses. Los correos antiguos siguen en el servidor.</p>
+</div>
+
+<footer>Aquila · <a href="https://github.com/rtsebastian2-collab/aquila">github.com/rtsebastian2-collab/aquila</a></footer>
+</main>
+</body>
+</html>
