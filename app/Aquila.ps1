@@ -29,7 +29,7 @@ $script:ArchivoComparar = $null
 #  Estilo
 # ============================================================================
 function Col([string]$hex) { [System.Drawing.ColorTranslator]::FromHtml($hex) }
-$C = @{ Marino = (Col '#0B1B3F'); Marino2 = (Col '#1E3A8A'); Oro = (Col '#F2B705'); OroOscuro = (Col '#C99700'); Fondo = (Col '#F3F5F9')
+$Paleta = @{ Marino = (Col '#0B1B3F'); Marino2 = (Col '#1E3A8A'); Oro = (Col '#F2B705'); OroOscuro = (Col '#C99700'); Fondo = (Col '#F3F5F9')
         Blanco = [System.Drawing.Color]::White; Texto = (Col '#1B2330'); Suave = (Col '#64748B'); Borde = (Col '#D5DCE6'); Claro = (Col '#CBD5E1'); Azul = (Col '#0B6BCB') }
 $ColorNivel = @{ Critico = (Col '#C62828'); Alto = (Col '#D9480F'); Medio = (Col '#A67C00'); Info = (Col '#1C64B8'); OK = (Col '#2B7A3A') }
 $EtqNivel = @{ Critico = 'Crítico'; Alto = 'Alto'; Medio = 'Medio'; Info = 'Info'; OK = 'Bien' }
@@ -46,11 +46,11 @@ function Sz([int]$w, [int]$h) { New-Object System.Drawing.Size($w, $h) }
 function Boton([string]$Texto, [int]$Ancho, [switch]$Primario) {
     $b = Nuevo Button @{ Text = $Texto; Size = (Sz $Ancho 38); FlatStyle = 'Flat'; Cursor = 'Hand'; Margin = (New-Object System.Windows.Forms.Padding(0, 0, 8, 0)) }
     if ($Primario) {
-        $b.BackColor = $C.Oro; $b.ForeColor = $C.Marino; $b.Font = $FuenteNegrita
-        $b.FlatAppearance.BorderColor = $C.OroOscuro; $b.FlatAppearance.MouseOverBackColor = (Col '#FFC928')
+        $b.BackColor = $Paleta.Oro; $b.ForeColor = $Paleta.Marino; $b.Font = $FuenteNegrita
+        $b.FlatAppearance.BorderColor = $Paleta.OroOscuro; $b.FlatAppearance.MouseOverBackColor = (Col '#FFC928')
     } else {
-        $b.BackColor = $C.Blanco; $b.ForeColor = $C.Texto; $b.Font = $Fuente
-        $b.FlatAppearance.BorderColor = $C.Borde; $b.FlatAppearance.MouseOverBackColor = (Col '#EEF2F7')
+        $b.BackColor = $Paleta.Blanco; $b.ForeColor = $Paleta.Texto; $b.Font = $Fuente
+        $b.FlatAppearance.BorderColor = $Paleta.Borde; $b.FlatAppearance.MouseOverBackColor = (Col '#EEF2F7')
     }
     $b
 }
@@ -58,7 +58,7 @@ function Doble-Buffer($ctl) { $ctl.GetType().GetProperty('DoubleBuffered', [Refl
 function Rtb-Agregar($rtb, [string]$texto, [switch]$Negrita, $Color = $null, [switch]$Titulo) {
     $rtb.SelectionStart = $rtb.TextLength
     $rtb.SelectionFont = if ($Titulo) { $FuenteTitulo } elseif ($Negrita) { $FuenteNegrita } else { $Fuente }
-    $rtb.SelectionColor = if ($Color) { $Color } else { $C.Texto }
+    $rtb.SelectionColor = if ($Color) { $Color } else { $Paleta.Texto }
     $rtb.AppendText($texto)
 }
 function Mensaje([string]$texto, [string]$titulo = 'Aquila', $icono = 'Information', $botones = 'OK') {
@@ -77,37 +77,37 @@ function Leer-Lineas([string]$ruta) {
 # ============================================================================
 #  Ventana principal
 # ============================================================================
-$form = Nuevo Form @{ Text = 'Aquila'; Size = (Sz 1180 800); StartPosition = 'CenterScreen'; Font = $Fuente; BackColor = $C.Fondo
+$form = Nuevo Form @{ Text = 'Aquila'; Size = (Sz 1180 800); StartPosition = 'CenterScreen'; Font = $Fuente; BackColor = $Paleta.Fondo
                       MinimumSize = (Sz 960 640); AutoScaleMode = 'Dpi' }
 $icono = Join-Path $Raiz 'aquila.ico'
 if (Test-Path -LiteralPath $icono) { $form.Icon = New-Object System.Drawing.Icon($icono) }
 
 # --- Cabecera azul marino ---
-$cab = Nuevo Panel @{ Dock = 'Top'; Height = 118; BackColor = $C.Marino }
-$logo = Nuevo PictureBox @{ Size = (Sz 84 84); Location = (Pt 22 17); SizeMode = 'Zoom'; BackColor = $C.Marino }
+$cab = Nuevo Panel @{ Dock = 'Top'; Height = 118; BackColor = $Paleta.Marino }
+$logo = Nuevo PictureBox @{ Size = (Sz 84 84); Location = (Pt 22 17); SizeMode = 'Zoom'; BackColor = $Paleta.Marino }
 $archivoLogo = Join-Path $Raiz 'logo.png'
 if (Test-Path -LiteralPath $archivoLogo) { $logo.Image = [System.Drawing.Image]::FromFile($archivoLogo) }
-$lblApp = Nuevo Label @{ Text = 'Aquila'; Font = (Fuente 26 -Negrita); ForeColor = $C.Blanco; AutoSize = $true; Location = (Pt 116 12); BackColor = $C.Marino }
-$lblLema = Nuevo Label @{ Text = 'Diagnóstico y optimización de tu computadora'; Font = (Fuente 11); ForeColor = $C.Claro; AutoSize = $true; Location = (Pt 120 60); BackColor = $C.Marino }
+$lblApp = Nuevo Label @{ Text = 'Aquila'; Font = (Fuente 26 -Negrita); ForeColor = $Paleta.Blanco; AutoSize = $true; Location = (Pt 116 12); BackColor = $Paleta.Marino }
+$lblLema = Nuevo Label @{ Text = 'Diagnóstico y optimización de tu computadora'; Font = (Fuente 11); ForeColor = $Paleta.Claro; AutoSize = $true; Location = (Pt 120 60); BackColor = $Paleta.Marino }
 $lblEquipo = Nuevo Label @{ Text = "$env:COMPUTERNAME  ·  $(if ($EsAdmin) { 'con permisos de administrador' } else { 'SIN permisos de administrador: abre Aquila desde su acceso directo' })"
-                            Font = (Fuente 9); ForeColor = (Col '#94A3B8'); AutoSize = $true; Location = (Pt 121 86); BackColor = $C.Marino }
-$anillo = Nuevo Panel @{ Size = (Sz 104 104); Anchor = 'Top, Right'; BackColor = $C.Marino }
-$lblSaludTit = Nuevo Label @{ Text = 'SALUD DE LA PC'; Font = (Fuente 8 -Negrita); ForeColor = (Col '#94A3B8'); AutoSize = $false; Size = (Sz 190 18); TextAlign = 'MiddleRight'; Anchor = 'Top, Right'; BackColor = $C.Marino }
-$lblSalud = Nuevo Label @{ Text = 'Sin diagnosticar'; Font = (Fuente 15 -Negrita); ForeColor = $C.Blanco; AutoSize = $false; Size = (Sz 190 30); TextAlign = 'MiddleRight'; Anchor = 'Top, Right'; BackColor = $C.Marino }
+                            Font = (Fuente 9); ForeColor = (Col '#94A3B8'); AutoSize = $true; Location = (Pt 121 86); BackColor = $Paleta.Marino }
+$anillo = Nuevo Panel @{ Size = (Sz 104 104); Anchor = 'Top, Right'; BackColor = $Paleta.Marino }
+$lblSaludTit = Nuevo Label @{ Text = 'SALUD DE LA PC'; Font = (Fuente 8 -Negrita); ForeColor = (Col '#94A3B8'); AutoSize = $false; Size = (Sz 190 18); TextAlign = 'MiddleRight'; Anchor = 'Top, Right'; BackColor = $Paleta.Marino }
+$lblSalud = Nuevo Label @{ Text = 'Sin diagnosticar'; Font = (Fuente 15 -Negrita); ForeColor = $Paleta.Blanco; AutoSize = $false; Size = (Sz 190 30); TextAlign = 'MiddleRight'; Anchor = 'Top, Right'; BackColor = $Paleta.Marino }
 Doble-Buffer $anillo
 $anillo.Add_Paint({
     param($s, $e)
     $g = $e.Graphics; $g.SmoothingMode = 'AntiAlias'; $g.TextRenderingHint = 'AntiAliasGridFit'
     $r = New-Object System.Drawing.Rectangle(9, 9, 86, 86)
-    $g.DrawArc((New-Object System.Drawing.Pen($C.Marino2, 9)), $r, 0, 360)
+    $g.DrawArc((New-Object System.Drawing.Pen($Paleta.Marino2, 9)), $r, 0, 360)
     $p = $script:Puntaje
     if ($p -ge 0) {
-        $col = if ($p -ge 80) { Col '#4ADE80' } elseif ($p -ge 60) { $C.Oro } elseif ($p -ge 40) { Col '#FB923C' } else { Col '#F87171' }
+        $col = if ($p -ge 80) { Col '#4ADE80' } elseif ($p -ge 60) { $Paleta.Oro } elseif ($p -ge 40) { Col '#FB923C' } else { Col '#F87171' }
         $pen = New-Object System.Drawing.Pen($col, 9); $pen.StartCap = 'Round'; $pen.EndCap = 'Round'
         $g.DrawArc($pen, $r, -90, [single](3.6 * [math]::Max(1, $p)))
     }
     $sf = New-Object System.Drawing.StringFormat; $sf.Alignment = 'Center'; $sf.LineAlignment = 'Center'
-    $g.DrawString($(if ($p -ge 0) { "$p" } else { '—' }), (Fuente 22 -Negrita), (New-Object System.Drawing.SolidBrush($C.Blanco)), (New-Object System.Drawing.RectangleF(0, 22, 104, 44)), $sf)
+    $g.DrawString($(if ($p -ge 0) { "$p" } else { '—' }), (Fuente 22 -Negrita), (New-Object System.Drawing.SolidBrush($Paleta.Blanco)), (New-Object System.Drawing.RectangleF(0, 22, 104, 44)), $sf)
     $g.DrawString('de 100', (Fuente 8), (New-Object System.Drawing.SolidBrush((Col '#94A3B8'))), (New-Object System.Drawing.RectangleF(0, 62, 104, 18)), $sf)
 })
 $cab.Controls.AddRange(@($logo, $lblApp, $lblLema, $lblEquipo, $anillo, $lblSaludTit, $lblSalud))
@@ -118,11 +118,11 @@ function Ubicar-Cabecera {
 }
 
 # --- Barra de acciones ---
-$barraAcc = Nuevo Panel @{ Dock = 'Top'; Height = 62; BackColor = $C.Blanco; Padding = (New-Object System.Windows.Forms.Padding(20, 12, 20, 12)) }
-$izq = Nuevo FlowLayoutPanel @{ Dock = 'Fill'; WrapContents = $false; BackColor = $C.Blanco }
-$der = Nuevo FlowLayoutPanel @{ Dock = 'Right'; Width = 290; WrapContents = $false; FlowDirection = 'RightToLeft'; BackColor = $C.Blanco }
+$barraAcc = Nuevo Panel @{ Dock = 'Top'; Height = 62; BackColor = $Paleta.Blanco; Padding = (New-Object System.Windows.Forms.Padding(20, 12, 20, 12)) }
+$izq = Nuevo FlowLayoutPanel @{ Dock = 'Fill'; WrapContents = $false; BackColor = $Paleta.Blanco }
+$der = Nuevo FlowLayoutPanel @{ Dock = 'Right'; Width = 290; WrapContents = $false; FlowDirection = 'RightToLeft'; BackColor = $Paleta.Blanco }
 $btnDiag = Boton '▶  Diagnosticar' 170 -Primario
-$chkDup = Nuevo CheckBox @{ Text = 'Buscar duplicados'; Checked = $true; AutoSize = $true; Margin = (New-Object System.Windows.Forms.Padding(4, 9, 16, 0)); ForeColor = $C.Texto }
+$chkDup = Nuevo CheckBox @{ Text = 'Buscar duplicados'; Checked = $true; AutoSize = $true; Margin = (New-Object System.Windows.Forms.Padding(4, 9, 16, 0)); ForeColor = $Paleta.Texto }
 $btnComparar = Boton 'Comparar con otra PC…' 190
 $btnInforme = Boton 'Ver informe' 120; $btnInforme.Enabled = $false
 $btnCarpeta = Boton 'Mis informes' 120
@@ -130,55 +130,63 @@ $btnActualizar = Boton '⟳  Actualizar' 130
 $btnManual = Boton '?  Manual' 120
 $izq.Controls.AddRange(@($btnDiag, $chkDup, $btnComparar, $btnInforme, $btnCarpeta))
 $der.Controls.AddRange(@($btnManual, $btnActualizar))
-$linea = Nuevo Panel @{ Dock = 'Bottom'; Height = 1; BackColor = $C.Borde }
+$linea = Nuevo Panel @{ Dock = 'Bottom'; Height = 1; BackColor = $Paleta.Borde }
 $barraAcc.Controls.AddRange(@($izq, $der, $linea))
 
+# --- Barra de progreso (visible mientras Aquila trabaja) ---
+$panelProg = Nuevo Panel @{ Dock = 'Top'; Height = 56; BackColor = (Col '#FFF7DB'); Visible = $false; Padding = (New-Object System.Windows.Forms.Padding(20, 6, 20, 10)) }
+$lblProg = Nuevo Label @{ Dock = 'Fill'; Font = (Fuente 10.5 -Negrita); ForeColor = $Paleta.Marino; TextAlign = 'MiddleLeft'; AutoEllipsis = $true }
+$barraProg = Nuevo ProgressBar @{ Dock = 'Bottom'; Height = 12; Maximum = 100; Style = 'Marquee'; MarqueeAnimationSpeed = 25 }
+$panelProg.Controls.AddRange(@($lblProg, $barraProg))
+$lineaProg = Nuevo Panel @{ Dock = 'Bottom'; Height = 1; BackColor = $Paleta.Oro }
+$panelProg.Controls.Add($lineaProg)
+
 # --- Pie ---
-$pie = Nuevo Panel @{ Dock = 'Bottom'; Height = 34; BackColor = $C.Blanco; Padding = (New-Object System.Windows.Forms.Padding(14, 6, 14, 6)) }
+$pie = Nuevo Panel @{ Dock = 'Bottom'; Height = 34; BackColor = $Paleta.Blanco; Padding = (New-Object System.Windows.Forms.Padding(14, 6, 14, 6)) }
 $barra = Nuevo ProgressBar @{ Dock = 'Right'; Width = 260; Visible = $false; Maximum = 100 }
-$lblVersion = Nuevo Label @{ Dock = 'Right'; Width = 130; Text = "Aquila v$AquilaVersion"; TextAlign = 'MiddleRight'; ForeColor = $C.Suave }
-$lblEstado = Nuevo Label @{ Dock = 'Fill'; Text = 'Listo. Presiona «Diagnosticar» para empezar.'; TextAlign = 'MiddleLeft'; AutoEllipsis = $true; ForeColor = $C.Texto }
+$lblVersion = Nuevo Label @{ Dock = 'Right'; Width = 130; Text = "Aquila v$AquilaVersion"; TextAlign = 'MiddleRight'; ForeColor = $Paleta.Suave }
+$lblEstado = Nuevo Label @{ Dock = 'Fill'; Text = 'Listo. Presiona «Diagnosticar» para empezar.'; TextAlign = 'MiddleLeft'; AutoEllipsis = $true; ForeColor = $Paleta.Texto }
 $pie.Controls.AddRange(@($lblEstado, $barra, $lblVersion))
 
 # --- Pestañas ---
-$cuerpo = Nuevo Panel @{ Dock = 'Fill'; Padding = (New-Object System.Windows.Forms.Padding(16, 12, 16, 8)); BackColor = $C.Fondo }
+$cuerpo = Nuevo Panel @{ Dock = 'Fill'; Padding = (New-Object System.Windows.Forms.Padding(16, 12, 16, 8)); BackColor = $Paleta.Fondo }
 $tabs = Nuevo TabControl @{ Dock = 'Fill'; Padding = (Pt 18 6); Font = (Fuente 10) }
-$tabDiag = Nuevo TabPage @{ Text = 'Diagnóstico'; BackColor = $C.Blanco }
-$tabArr = Nuevo TabPage @{ Text = 'Arreglos'; BackColor = $C.Blanco }
-$tabVig = Nuevo TabPage @{ Text = 'Vigilar'; BackColor = $C.Blanco }
-$tabLog = Nuevo TabPage @{ Text = 'Registro'; BackColor = $C.Blanco }
+$tabDiag = Nuevo TabPage @{ Text = 'Diagnóstico'; BackColor = $Paleta.Blanco }
+$tabArr = Nuevo TabPage @{ Text = 'Arreglos'; BackColor = $Paleta.Blanco }
+$tabVig = Nuevo TabPage @{ Text = 'Vigilar'; BackColor = $Paleta.Blanco }
+$tabLog = Nuevo TabPage @{ Text = 'Registro'; BackColor = $Paleta.Blanco }
 $tabs.TabPages.AddRange(@($tabDiag, $tabArr, $tabVig, $tabLog))
 $cuerpo.Controls.Add($tabs)
 
 # Diagnóstico: lista + detalle
-$splitD = Nuevo SplitContainer @{ Dock = 'Fill'; Orientation = 'Vertical'; BackColor = $C.Borde }
+$splitD = Nuevo SplitContainer @{ Dock = 'Fill'; Orientation = 'Vertical'; BackColor = $Paleta.Borde }
 $lvHall = Nuevo ListView @{ Dock = 'Fill'; View = 'Details'; FullRowSelect = $true; HideSelection = $false; MultiSelect = $false; BorderStyle = 'None'; Font = (Fuente 10) }
 [void]$lvHall.Columns.Add('Nivel', 80); [void]$lvHall.Columns.Add('Tema', 110); [void]$lvHall.Columns.Add('Qué se encontró', 360)
-$rtbHall = Nuevo RichTextBox @{ Dock = 'Fill'; ReadOnly = $true; BorderStyle = 'None'; BackColor = $C.Blanco }
-$splitD.Panel1.BackColor = $C.Blanco; $splitD.Panel2.BackColor = $C.Blanco
+$rtbHall = Nuevo RichTextBox @{ Dock = 'Fill'; ReadOnly = $true; BorderStyle = 'None'; BackColor = $Paleta.Blanco }
+$splitD.Panel1.BackColor = $Paleta.Blanco; $splitD.Panel2.BackColor = $Paleta.Blanco
 $splitD.Panel2.Padding = New-Object System.Windows.Forms.Padding(16, 12, 12, 12)
 $splitD.Panel1.Controls.Add($lvHall); $splitD.Panel2.Controls.Add($rtbHall)
 $tabDiag.Controls.Add($splitD)
 
 # Arreglos
-$panelArrBtn = Nuevo FlowLayoutPanel @{ Dock = 'Bottom'; Height = 58; Padding = (New-Object System.Windows.Forms.Padding(10, 10, 10, 8)); BackColor = $C.Fondo }
+$panelArrBtn = Nuevo FlowLayoutPanel @{ Dock = 'Bottom'; Height = 58; Padding = (New-Object System.Windows.Forms.Padding(10, 10, 10, 8)); BackColor = $Paleta.Fondo }
 $btnAplicar = Boton 'Aplicar los marcados…' 200 -Primario; $btnAplicar.Enabled = $false
 $btnMarcarBajo = Boton 'Marcar los de riesgo bajo' 210
 $btnDesmarcar = Boton 'Desmarcar todo' 140
 $btnRestaurar = Boton 'Restaurar programas de inicio' 240
 $panelArrBtn.Controls.AddRange(@($btnAplicar, $btnMarcarBajo, $btnDesmarcar, $btnRestaurar))
-$splitA = Nuevo SplitContainer @{ Dock = 'Fill'; Orientation = 'Horizontal'; BackColor = $C.Borde }
+$splitA = Nuevo SplitContainer @{ Dock = 'Fill'; Orientation = 'Horizontal'; BackColor = $Paleta.Borde }
 $lvArr = Nuevo ListView @{ Dock = 'Fill'; View = 'Details'; CheckBoxes = $true; FullRowSelect = $true; HideSelection = $false; MultiSelect = $false; BorderStyle = 'None' }
 [void]$lvArr.Columns.Add('#', 40); [void]$lvArr.Columns.Add('Arreglo', 470); [void]$lvArr.Columns.Add('Libera', 90); [void]$lvArr.Columns.Add('Riesgo', 80); [void]$lvArr.Columns.Add('Estado', 200)
-$rtbArr = Nuevo RichTextBox @{ Dock = 'Fill'; ReadOnly = $true; BorderStyle = 'None'; BackColor = $C.Blanco }
-$splitA.Panel1.BackColor = $C.Blanco; $splitA.Panel2.BackColor = $C.Blanco
+$rtbArr = Nuevo RichTextBox @{ Dock = 'Fill'; ReadOnly = $true; BorderStyle = 'None'; BackColor = $Paleta.Blanco }
+$splitA.Panel1.BackColor = $Paleta.Blanco; $splitA.Panel2.BackColor = $Paleta.Blanco
 $splitA.Panel2.Padding = New-Object System.Windows.Forms.Padding(16, 10, 12, 10)
 $splitA.Panel1.Controls.Add($lvArr); $splitA.Panel2.Controls.Add($rtbArr)
 $tabArr.Controls.Add($splitA); $tabArr.Controls.Add($panelArrBtn)
 
 # Vigilar
 $lblVigInfo = Nuevo Label @{ Text = "Deja la PC trabajando como siempre. Aquila mide cada 3 segundos y, cada vez que la PC se pone lenta, anota el momento y qué programa lo causó. Al final verás un gráfico y el ranking de culpables.`r`nIdeal: iniciarlo justo antes de lo que suele ponerse lento (abrir Outlook, sincronizar, primera hora de la mañana)."
-                             Location = (Pt 20 16); Size = (Sz 1080 64); ForeColor = $C.Texto }
+                             Location = (Pt 20 16); Size = (Sz 1080 64); ForeColor = $Paleta.Texto }
 $lblMin = Nuevo Label @{ Text = 'Minutos:'; AutoSize = $true; Location = (Pt 20 100) }
 $numMin = Nuevo NumericUpDown @{ Minimum = 1; Maximum = 480; Value = 30; Location = (Pt 92 97); Width = 70 }
 $btnVigIni = Boton '▶  Empezar a vigilar' 190 -Primario; $btnVigIni.Location = Pt 180 90
@@ -200,11 +208,11 @@ $lbEpisodios = Nuevo ListBox @{ Location = (Pt 20 286); Size = (Sz 1080 260); Ho
 $tabVig.Controls.AddRange(@($lblVigEstado, $lbEpisodios))
 
 # Registro
-$txtLog = Nuevo TextBox @{ Dock = 'Fill'; Multiline = $true; ScrollBars = 'Vertical'; ReadOnly = $true; Font = (New-Object System.Drawing.Font('Consolas', 9.5)); BackColor = $C.Blanco; BorderStyle = 'None' }
+$txtLog = Nuevo TextBox @{ Dock = 'Fill'; Multiline = $true; ScrollBars = 'Vertical'; ReadOnly = $true; Font = (New-Object System.Drawing.Font('Consolas', 9.5)); BackColor = $Paleta.Blanco; BorderStyle = 'None' }
 $tabLog.Padding = New-Object System.Windows.Forms.Padding(10)
 $tabLog.Controls.Add($txtLog)
 
-$form.Controls.AddRange(@($cuerpo, $pie, $barraAcc, $cab))
+$form.Controls.AddRange(@($cuerpo, $pie, $panelProg, $barraAcc, $cab))
 
 function Ajustar-Paneles {
     try {
@@ -225,40 +233,40 @@ $form.Add_SizeChanged({ if ($form.WindowState -ne 'Minimized') { Ajustar-Paneles
 # ============================================================================
 function Mostrar-Bienvenida {
     $rtbHall.Clear()
-    Rtb-Agregar $rtbHall "Bienvenido a Aquila`n`n" -Titulo -Color $C.Marino
+    Rtb-Agregar $rtbHall "Bienvenido a Aquila`n`n" -Titulo -Color $Paleta.Marino
     Rtb-Agregar $rtbHall "Aquila revisa esta computadora, te explica en palabras simples por qué está lenta y te ofrece arreglos. Antes de cambiar cualquier cosa te dice qué hace, por qué y si afecta algo.`n`n"
-    Rtb-Agregar $rtbHall "1.  Diagnosticar`n" -Negrita -Color $C.Marino
+    Rtb-Agregar $rtbHall "1.  Diagnosticar`n" -Negrita -Color $Paleta.Marino
     Rtb-Agregar $rtbHall "     Presiona el botón dorado «Diagnosticar». Tarda unos 3 minutos; puedes seguir usando la PC.`n`n"
-    Rtb-Agregar $rtbHall "2.  Leer el resultado`n" -Negrita -Color $C.Marino
+    Rtb-Agregar $rtbHall "2.  Leer el resultado`n" -Negrita -Color $Paleta.Marino
     Rtb-Agregar $rtbHall "     Aquí verás cada problema encontrado. Haz clic en uno para ver por qué pasa y qué hacer.`n`n"
-    Rtb-Agregar $rtbHall "3.  Arreglar`n" -Negrita -Color $C.Marino
+    Rtb-Agregar $rtbHall "3.  Arreglar`n" -Negrita -Color $Paleta.Marino
     Rtb-Agregar $rtbHall "     En la pestaña «Arreglos» marca lo que quieras y presiona «Aplicar los marcados». Antes se crea un punto de restauración para poder deshacer.`n`n"
-    Rtb-Agregar $rtbHall "¿Se pone lenta solo a ratos?`n" -Negrita -Color $C.Marino
+    Rtb-Agregar $rtbHall "¿Se pone lenta solo a ratos?`n" -Negrita -Color $Paleta.Marino
     Rtb-Agregar $rtbHall "     Usa la pestaña «Vigilar»: atrapa al programa culpable justo en el momento en que ocurre.`n`n"
-    Rtb-Agregar $rtbHall "Dudas: botón «Manual» arriba a la derecha." -Color $C.Suave
+    Rtb-Agregar $rtbHall "Dudas: botón «Manual» arriba a la derecha." -Color $Paleta.Suave
 }
 function Mostrar-Hallazgo($h) {
     $rtbHall.Clear()
     if (-not $h) { return }
     Rtb-Agregar $rtbHall "$($EtqNivel[$h.Nivel]) · $($h.Categoria)`n" -Negrita -Color $ColorNivel[$h.Nivel]
-    Rtb-Agregar $rtbHall "$($h.Titulo)`n`n" -Titulo -Color $C.Marino
-    if ($h.Detalle) { Rtb-Agregar $rtbHall "$($h.Detalle)`n`n" -Color $C.Suave }
-    if ($h.Porque) { Rtb-Agregar $rtbHall "¿Por qué pasa?`n" -Negrita -Color $C.Marino; Rtb-Agregar $rtbHall "$($h.Porque)`n`n" }
-    if ($h.Solucion) { Rtb-Agregar $rtbHall "Qué hacer`n" -Negrita -Color $C.Marino; Rtb-Agregar $rtbHall "$($h.Solucion)`n`n" }
+    Rtb-Agregar $rtbHall "$($h.Titulo)`n`n" -Titulo -Color $Paleta.Marino
+    if ($h.Detalle) { Rtb-Agregar $rtbHall "$($h.Detalle)`n`n" -Color $Paleta.Suave }
+    if ($h.Porque) { Rtb-Agregar $rtbHall "¿Por qué pasa?`n" -Negrita -Color $Paleta.Marino; Rtb-Agregar $rtbHall "$($h.Porque)`n`n" }
+    if ($h.Solucion) { Rtb-Agregar $rtbHall "Qué hacer`n" -Negrita -Color $Paleta.Marino; Rtb-Agregar $rtbHall "$($h.Solucion)`n`n" }
     $rel = @($script:Resultado.Arreglos | Where-Object { @($h.Arreglos) -contains $_.Id })
     if ($rel) {
-        Rtb-Agregar $rtbHall "🔧 Aquila puede hacerlo por ti (pestaña «Arreglos»):`n" -Negrita -Color $C.Azul
+        Rtb-Agregar $rtbHall "🔧 Aquila puede hacerlo por ti (pestaña «Arreglos»):`n" -Negrita -Color $Paleta.Azul
         foreach ($a in $rel) { Rtb-Agregar $rtbHall "     #$($a.Numero)  $($a.Nombre)`n" }
     }
 }
 function Mostrar-Arreglo($a) {
     $rtbArr.Clear()
     if (-not $a) { return }
-    Rtb-Agregar $rtbArr "#$($a.Numero)  $($a.Nombre)`n" -Titulo -Color $C.Marino
+    Rtb-Agregar $rtbArr "#$($a.Numero)  $($a.Nombre)`n" -Titulo -Color $Paleta.Marino
     $lib = if ([double]$a.Bytes -gt 0) { "Libera aprox. $(Fmt $a.Bytes)   ·   " } else { '' }
-    Rtb-Agregar $rtbArr "$lib Riesgo: $($a.Riesgo)$(if ($a.Admin -and -not $EsAdmin) { '   ·   REQUIERE ADMINISTRADOR' })`n`n" -Color $C.Suave
-    Rtb-Agregar $rtbArr "Qué hace:  " -Negrita -Color $C.Marino; Rtb-Agregar $rtbArr "$($a.QueHace)`n`n"
-    Rtb-Agregar $rtbArr "Por qué:  " -Negrita -Color $C.Marino; Rtb-Agregar $rtbArr "$($a.Porque)`n`n"
+    Rtb-Agregar $rtbArr "$lib Riesgo: $($a.Riesgo)$(if ($a.Admin -and -not $EsAdmin) { '   ·   REQUIERE ADMINISTRADOR' })`n`n" -Color $Paleta.Suave
+    Rtb-Agregar $rtbArr "Qué hace:  " -Negrita -Color $Paleta.Marino; Rtb-Agregar $rtbArr "$($a.QueHace)`n`n"
+    Rtb-Agregar $rtbArr "Por qué:  " -Negrita -Color $Paleta.Marino; Rtb-Agregar $rtbArr "$($a.Porque)`n`n"
     Rtb-Agregar $rtbArr "¿Afecta algo?  " -Negrita -Color $ColorNivel.Alto; Rtb-Agregar $rtbArr "$($a.Afecta)`n"
 }
 
@@ -299,12 +307,12 @@ function Cargar-Resultado([string]$ruta) {
 #  Diálogos
 # ============================================================================
 function Dialogo-Lista([string]$Titulo, [string]$Explicacion, $Elementos) {
-    $d = Nuevo Form @{ Text = $Titulo; Size = (Sz 920 620); StartPosition = 'CenterParent'; Font = $Fuente; MinimizeBox = $false; BackColor = $C.Blanco; Icon = $form.Icon }
-    $lbl = Nuevo Label @{ Text = $Explicacion; Dock = 'Top'; Height = 70; Padding = (New-Object System.Windows.Forms.Padding(14, 12, 14, 0)); ForeColor = $C.Texto }
+    $d = Nuevo Form @{ Text = $Titulo; Size = (Sz 920 620); StartPosition = 'CenterParent'; Font = $Fuente; MinimizeBox = $false; BackColor = $Paleta.Blanco; Icon = $form.Icon }
+    $lbl = Nuevo Label @{ Text = $Explicacion; Dock = 'Top'; Height = 70; Padding = (New-Object System.Windows.Forms.Padding(14, 12, 14, 0)); ForeColor = $Paleta.Texto }
     $cl = Nuevo CheckedListBox @{ Dock = 'Fill'; CheckOnClick = $true; HorizontalScrollbar = $true; IntegralHeight = $false; BorderStyle = 'None' }
     $i = 0
     foreach ($e in $Elementos) { [void]$cl.Items.Add($e.Texto); $cl.SetItemChecked($i, [bool]$e.Marcado); $i++ }
-    $pb = Nuevo FlowLayoutPanel @{ Dock = 'Bottom'; Height = 58; Padding = (New-Object System.Windows.Forms.Padding(12, 10, 12, 8)); BackColor = $C.Fondo }
+    $pb = Nuevo FlowLayoutPanel @{ Dock = 'Bottom'; Height = 58; Padding = (New-Object System.Windows.Forms.Padding(12, 10, 12, 8)); BackColor = $Paleta.Fondo }
     $ok = Boton 'Aceptar' 130 -Primario; $ok.DialogResult = 'OK'
     $ca = Boton 'Cancelar' 120; $ca.DialogResult = 'Cancel'
     $todo = Boton 'Marcar todo' 130; $nada = Boton 'Desmarcar todo' 140
@@ -319,19 +327,19 @@ function Dialogo-Lista([string]$Titulo, [string]$Explicacion, $Elementos) {
 }
 
 function Dialogo-Confirmar($Lista) {
-    $d = Nuevo Form @{ Text = 'Antes de aplicar: revisa lo que se va a hacer'; Size = (Sz 920 660); StartPosition = 'CenterParent'; Font = $Fuente; MinimizeBox = $false; BackColor = $C.Blanco; Icon = $form.Icon }
-    $rtb = Nuevo RichTextBox @{ Dock = 'Fill'; ReadOnly = $true; BorderStyle = 'None'; BackColor = $C.Blanco }
+    $d = Nuevo Form @{ Text = 'Antes de aplicar: revisa lo que se va a hacer'; Size = (Sz 920 660); StartPosition = 'CenterParent'; Font = $Fuente; MinimizeBox = $false; BackColor = $Paleta.Blanco; Icon = $form.Icon }
+    $rtb = Nuevo RichTextBox @{ Dock = 'Fill'; ReadOnly = $true; BorderStyle = 'None'; BackColor = $Paleta.Blanco }
     $marco = Nuevo Panel @{ Dock = 'Fill'; Padding = (New-Object System.Windows.Forms.Padding(18, 14, 12, 8)) }
     $marco.Controls.Add($rtb)
-    Rtb-Agregar $rtb "Se aplicarán $(@($Lista).Count) arreglo(s)`n" -Titulo -Color $C.Marino
-    Rtb-Agregar $rtb "$(if ($EsAdmin) { 'Antes de empezar se creará un punto de restauración de Windows para poder deshacer los cambios del sistema.' } else { 'Sin permisos de administrador no se puede crear punto de restauración.' })`n`n" -Color $C.Suave
+    Rtb-Agregar $rtb "Se aplicarán $(@($Lista).Count) arreglo(s)`n" -Titulo -Color $Paleta.Marino
+    Rtb-Agregar $rtb "$(if ($EsAdmin) { 'Antes de empezar se creará un punto de restauración de Windows para poder deshacer los cambios del sistema.' } else { 'Sin permisos de administrador no se puede crear punto de restauración.' })`n`n" -Color $Paleta.Suave
     foreach ($a in $Lista) {
-        Rtb-Agregar $rtb "■ #$($a.Numero)  $($a.Nombre)$(if ([double]$a.Bytes -gt 0) { "   (libera ~$(Fmt $a.Bytes))" })`n" -Negrita -Color $C.Marino
+        Rtb-Agregar $rtb "■ #$($a.Numero)  $($a.Nombre)$(if ([double]$a.Bytes -gt 0) { "   (libera ~$(Fmt $a.Bytes))" })`n" -Negrita -Color $Paleta.Marino
         Rtb-Agregar $rtb "   Qué hace: $($a.QueHace)`n"
         Rtb-Agregar $rtb "   Por qué: $($a.Porque)`n"
         Rtb-Agregar $rtb "   ¿Afecta algo? $($a.Afecta)`n`n" -Color $ColorNivel.Alto
     }
-    $pb = Nuevo FlowLayoutPanel @{ Dock = 'Bottom'; Height = 58; Padding = (New-Object System.Windows.Forms.Padding(12, 10, 12, 8)); BackColor = $C.Fondo }
+    $pb = Nuevo FlowLayoutPanel @{ Dock = 'Bottom'; Height = 58; Padding = (New-Object System.Windows.Forms.Padding(12, 10, 12, 8)); BackColor = $Paleta.Fondo }
     $ok = Boton 'Sí, aplicar' 150 -Primario; $ok.DialogResult = 'OK'
     $ca = Boton 'Cancelar' 120; $ca.DialogResult = 'Cancel'
     $pb.Controls.AddRange(@($ok, $ca))
@@ -350,7 +358,10 @@ function Iniciar-Proceso([string]$Script, [string[]]$Argumentos, [string]$Log, [
     $psi.UseShellExecute = $false; $psi.CreateNoWindow = $true
     $script:LogActual = $Log; $script:LineasVistas = 0; $script:AlTerminar = $AlTerminar
     $script:Proc = [System.Diagnostics.Process]::Start($psi)
-    $barra.Value = 0; $barra.Visible = $true
+    $script:InicioProc = Get-Date; $script:PasoTexto = $Texto; $script:PasoN = 0; $script:PasoTotal = 0; $script:Giro = 0
+    $barraProg.Style = 'Marquee'; $barraProg.Value = 0
+    $lblProg.Text = "$Texto"
+    $panelProg.Visible = $true
     $lblEstado.Text = $Texto
     foreach ($b in $btnDiag, $btnAplicar, $btnRestaurar, $btnActualizar) { $b.Enabled = $false }
     $timer.Start()
@@ -362,15 +373,27 @@ $timer.Add_Tick({
     $lineas = Leer-Lineas $script:LogActual
     for ($i = $script:LineasVistas; $i -lt $lineas.Count; $i++) {
         $txtLog.AppendText($lineas[$i] + "`r`n")
-        $m = [regex]::Match($lineas[$i], '\((\d+)/(\d+)\)')
-        if ($m.Success) { $barra.Value = [math]::Min(100, [int](100 * ([int]$m.Groups[1].Value - 1) / [int]$m.Groups[2].Value)) }
-        $lblEstado.Text = $lineas[$i] -replace '^\[[^\]]+\]\s*', ''
+        $texto = ($lineas[$i] -replace '^\[[^\]]+\]\s*', '').Trim()
+        $m = [regex]::Match($texto, '^\((\d+)/(\d+)\)\s*(.*)$')
+        if ($m.Success) {
+            $script:PasoN = [int]$m.Groups[1].Value; $script:PasoTotal = [int]$m.Groups[2].Value; $script:PasoTexto = $m.Groups[3].Value
+            $barraProg.Style = 'Continuous'
+            $barraProg.Value = [math]::Min(100, [math]::Max(3, [int](100 * ($script:PasoN - 1) / $script:PasoTotal)))
+        } elseif ($texto -and -not $script:PasoTotal) { $script:PasoTexto = $texto }
+        $lblEstado.Text = $texto
     }
     $script:LineasVistas = $lineas.Count
+    if ($script:Proc -and -not $script:Proc.HasExited) {
+        $script:Giro = ($script:Giro + 1) % 4
+        $puntos = '.' * ($script:Giro + 1)
+        $trans = (Get-Date) - $script:InicioProc
+        $pasoTxt = if ($script:PasoTotal) { "Paso $($script:PasoN) de $($script:PasoTotal)  ·  $($barraProg.Value)%  ·  " } else { '' }
+        $lblProg.Text = "Trabajando$puntos   $pasoTxt$($script:PasoTexto)   ·   $([int][math]::Floor($trans.TotalMinutes)):$('{0:00}' -f $trans.Seconds)"
+    }
     if ($script:Proc -and $script:Proc.HasExited) {
         $timer.Stop()
         $script:Proc = $null
-        $barra.Value = 100; $barra.Visible = $false
+        $barraProg.Style = 'Continuous'; $barraProg.Value = 100; $panelProg.Visible = $false
         foreach ($b in $btnDiag, $btnRestaurar, $btnActualizar) { $b.Enabled = $true }
         $btnAplicar.Enabled = ($lvArr.Items.Count -gt 0)
         $cb = $script:AlTerminar
@@ -423,8 +446,8 @@ $btnDiag.Add_Click({
     if ($script:ArchivoComparar) { $argumentos += "-Comparar `"$($script:ArchivoComparar)`"" }
     $txtLog.AppendText("`r`n===== Diagnóstico $(Get-Date -Format 'dd/MM/yyyy HH:mm') =====`r`n")
     $script:ResDiag = $res
-    $rtbHall.Clear(); Rtb-Agregar $rtbHall "Diagnosticando...`n`n" -Titulo -Color $C.Marino
-    Rtb-Agregar $rtbHall 'Aquila está revisando el equipo, los discos, lo que corre en este momento, los programas al encender, la nube, el correo, el espacio y los duplicados. Tarda unos 3 minutos; puedes seguir usando la PC normalmente.' -Color $C.Suave
+    $rtbHall.Clear(); Rtb-Agregar $rtbHall "Diagnosticando...`n`n" -Titulo -Color $Paleta.Marino
+    Rtb-Agregar $rtbHall 'Aquila está revisando el equipo, los discos, lo que corre en este momento, los programas al encender, la nube, el correo, el espacio y los duplicados. Tarda unos 3 minutos; puedes seguir usando la PC normalmente.' -Color $Paleta.Suave
     Iniciar-Proceso $ScriptDiag $argumentos $log {
         if (Test-Path -LiteralPath $script:ResDiag) {
             Cargar-Resultado $script:ResDiag
