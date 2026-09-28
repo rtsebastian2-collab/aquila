@@ -384,7 +384,7 @@ $timer.Add_Tick({
 function Descargar-Texto([string]$archivo) {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     $u = "https://raw.githubusercontent.com/$AquilaRepo/main/$($archivo)?t=$([DateTime]::UtcNow.Ticks)"
-    (Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 8).Content
+    ([string](Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 8).Content).TrimStart([char]0xFEFF)
 }
 function Buscar-Actualizacion([switch]$Manual) {
     try { $remota = ([string](Descargar-Texto 'version.txt')).Trim() }
