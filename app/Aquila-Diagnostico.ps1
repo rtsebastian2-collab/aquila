@@ -79,11 +79,12 @@ function Add-Hallazgo {
 # Un arreglo es solo la descripción + los datos; lo que hace está en $Acciones[$Tipo]
 function Add-Arreglo {
     param([string]$Id, [string]$Tipo, [string]$Nombre, [string]$QueHace, [string]$Porque, [string]$Afecta,
-          [ValidateSet('Bajo', 'Medio', 'Alto')][string]$Riesgo, [double]$Bytes = 0, $Datos = @{}, [switch]$Admin)
+          [ValidateSet('Bajo', 'Medio', 'Alto')][string]$Riesgo, [double]$Bytes = 0, $Datos = @{}, [switch]$Admin,
+          [string]$Duracion = 'Menos de 1 min', [switch]$Lento)
     if (-not $Tipo) { $Tipo = $Id }
     if ($Arreglos | Where-Object { $_.Id -eq $Id }) { return }
     $Arreglos.Add([pscustomobject]@{ Id = $Id; Tipo = $Tipo; Numero = 0; Nombre = $Nombre; QueHace = $QueHace; Porque = $Porque; Afecta = $Afecta
-                                     Riesgo = $Riesgo; Bytes = $Bytes; Datos = $Datos; Admin = [bool]$Admin })
+                                     Riesgo = $Riesgo; Bytes = $Bytes; Datos = $Datos; Admin = [bool]$Admin; Duracion = $Duracion; Lento = [bool]$Lento })
 }
 
 function Add-Tabla([string]$Titulo, [string]$Nota, $Filas, [string[]]$Columnas) {
@@ -93,9 +94,10 @@ function Add-Tabla([string]$Titulo, [string]$Nota, $Filas, [string[]]$Columnas) 
 # Suma el tamaño de una carpeta sin detenerse por carpetas sin permiso.
 # Separa lo que realmente ocupa disco de lo que está "solo en la nube" (OneDrive a petición).
 function Get-TamanoCarpeta {
-    param([string]$Ruta, [long]$MinGrande = 0, [string]$Filtro, [string[]]$Excluir = @())
+    param([string]$Ruta, [long]$MinGrande = 0, [string]$Filtro, [string[]]$Excluir = @(), [int]$SegundosMax = 0)
     $grandes = New-Object System.Collections.Generic.List[object]
-    $bytes = [long]0; $nube = [long]0; $n = [long]0
+    $bytes = [long]0; $nube = [long]0; $n = [long]0; $incompleto = $false
+    $reloj = [Diagnostics.Stopwatch]::StartNew()
     if ($Ruta -and (Test-Path -LiteralPath $Ruta -PathType Leaf)) {
         $bytes = (Get-Item -LiteralPath $Ruta -Force).Length; $n = 1
     } elseif ($Ruta -and $Filtro -and (Test-Path -LiteralPath $Ruta)) {
@@ -107,6 +109,7 @@ function Get-TamanoCarpeta {
         $pila = New-Object 'System.Collections.Generic.Stack[object]'
         $pila.Push(@($Ruta, 0))
         while ($pila.Count -gt 0) {
+            if ($SegundosMax -gt 0 -and $reloj.Elapsed.TotalSeconds -gt $SegundosMax) { $incompleto = $true; break }
             $item = $pila.Pop(); $prof = $item[1]
             $di = New-Object IO.DirectoryInfo ($item[0])
             try {
@@ -129,7 +132,7 @@ function Get-TamanoCarpeta {
             } catch {}
         }
     }
-    [pscustomobject]@{ Bytes = $bytes; BytesNube = $nube; Archivos = $n; Grandes = $grandes }
+    [pscustomobject]@{ Bytes = $bytes; BytesNube = $nube; Archivos = $n; Grandes = $grandes; Incompleto = $incompleto }
 }
 
 function Resolve-Rutas([string[]]$Patrones) {
@@ -140,22 +143,19 @@ function Resolve-Rutas([string[]]$Patrones) {
     }
 }
 
+# Borra el contenido de una carpeta (o un archivo). Las subcarpetas se borran con el comando nativo de Windows,
+# mucho más rápido que Remove-Item y que salta lo que está en uso. El espacio liberado se mide con el disco libre.
 function Remove-Contenido {
     param([string]$Ruta, [int]$DiasMin = 0, [string]$Filtro)
     if (-not $Filtro) { $Filtro = '*' }
-    if (-not (Test-Path -LiteralPath $Ruta)) { return [long]0 }
-    $medir = if ($Filtro -ne '*') { $Filtro } else { $null }
-    $antes = (Get-TamanoCarpeta -Ruta $Ruta -Filtro $medir).Bytes
-    if (Test-Path -LiteralPath $Ruta -PathType Leaf) {
-        Remove-Item -LiteralPath $Ruta -Force -ErrorAction SilentlyContinue
-    } else {
-        $limite = (Get-Date).AddDays(-$DiasMin)
-        Get-ChildItem -LiteralPath $Ruta -Filter $Filtro -Force -ErrorAction SilentlyContinue |
-            Where-Object { $DiasMin -le 0 -or $_.LastWriteTime -lt $limite } |
-            ForEach-Object { Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+    if (-not (Test-Path -LiteralPath $Ruta)) { return }
+    if (Test-Path -LiteralPath $Ruta -PathType Leaf) { Remove-Item -LiteralPath $Ruta -Force -ErrorAction SilentlyContinue; return }
+    $limite = (Get-Date).AddDays(-$DiasMin)
+    foreach ($i in Get-ChildItem -LiteralPath $Ruta -Filter $Filtro -Force -ErrorAction SilentlyContinue) {
+        if ($DiasMin -gt 0 -and $i.LastWriteTime -ge $limite) { continue }
+        if ($i.PSIsContainer) { & cmd.exe /d /c "rd /s /q `"$($i.FullName)`"" 2>$null | Out-Null }
+        else { Remove-Item -LiteralPath $i.FullName -Force -ErrorAction SilentlyContinue }
     }
-    $despues = (Get-TamanoCarpeta -Ruta $Ruta -Filtro $medir).Bytes
-    [long][math]::Max(0, $antes - $despues)
 }
 
 function Confirmar([string]$Pregunta) {
@@ -237,7 +237,7 @@ function Get-Huella([string]$Ruta, [long]$Largo, [switch]$Muestra) {
             $ms = New-Object IO.MemoryStream
             $partes = 16
             for ($i = 0; $i -lt $partes; $i++) {
-                $fs.Position = [long][math]::Max(0, [math]::Floor(($Largo - 65536) * $i / ($partes - 1)))
+                $fs.Position = [long][math]::Max([double]0, [math]::Floor(($Largo - 65536) * $i / ($partes - 1)))
                 $n = $fs.Read($buf, 0, $buf.Length); $ms.Write($buf, 0, $n)
             }
             return [BitConverter]::ToString($md5.ComputeHash($ms.ToArray()))
@@ -308,26 +308,27 @@ function Buscar-Duplicados([string[]]$Carpetas, [long]$MinBytes = 1MB, [int]$Seg
 $AccionBorrar = {
     param($d)
     if ($d.Procesos -and -not (Esperar-Cierre $d.Procesos $d.App $d.ForzarCierre)) { return 'Omitido: el programa seguía abierto.' }
-    $total = [long]0
-    foreach ($r in @($d.Rutas)) { $total += Remove-Contenido -Ruta $r -DiasMin ([int]$d.DiasMin) -Filtro $d.Filtro }
-    "Se liberaron $(Fmt $total). (Los archivos en uso se saltan.)"
+    $antes = Libre-Sistema
+    foreach ($r in @($d.Rutas)) { Remove-Contenido -Ruta $r -DiasMin ([int]$d.DiasMin) -Filtro $d.Filtro }
+    "Se liberaron $(Fmt ([math]::Max([double]0, (Libre-Sistema) - $antes))). (Los archivos en uso se saltan.)"
 }
 $Acciones = @{
     borrar = $AccionBorrar
-    papelera = { param($d) $antes = Libre-Sistema; Clear-RecycleBin -Force -ErrorAction SilentlyContinue; "Papelera vaciada (liberado en ${SisDrive}: $(Fmt ([math]::Max(0, (Libre-Sistema) - $antes))))." }
+    papelera = { param($d) $antes = Libre-Sistema; Clear-RecycleBin -Force -ErrorAction SilentlyContinue; "Papelera vaciada (liberado en ${SisDrive}: $(Fmt ([math]::Max([double]0, (Libre-Sistema) - $antes))))." }
     wu = {
         param($d)
+        $antes = Libre-Sistema
         Stop-Service wuauserv, bits -Force
-        $t = [long]0; foreach ($r in @($d.Rutas)) { $t += Remove-Contenido $r }
+        foreach ($r in @($d.Rutas)) { Remove-Contenido $r }
         Start-Service bits, wuauserv
-        "Se liberaron $(Fmt $t)."
+        "Se liberaron $(Fmt ([math]::Max([double]0, (Libre-Sistema) - $antes)))."
     }
     do = {
         param($d)
         $antes = Libre-Sistema
         Delete-DeliveryOptimizationCache -Force -ErrorAction SilentlyContinue
-        foreach ($r in @($d.Rutas)) { [void](Remove-Contenido $r) }
-        "Liberado: $(Fmt ([math]::Max(0, (Libre-Sistema) - $antes)))."
+        foreach ($r in @($d.Rutas)) { Remove-Contenido $r }
+        "Liberado: $(Fmt ([math]::Max([double]0, (Libre-Sistema) - $antes)))."
     }
     windowsold = {
         param($d)
@@ -349,11 +350,11 @@ $Acciones = @{
                 Remove-Item -LiteralPath $r -Recurse -Force -ErrorAction SilentlyContinue
             }
         }
-        "Liberado: $(Fmt ([math]::Max(0, (Libre-Sistema) - $antes)))."
+        "Liberado: $(Fmt ([math]::Max([double]0, (Libre-Sistema) - $antes)))."
     }
-    puntos = { param($d) $antes = Libre-Sistema; & vssadmin.exe resize shadowstorage /for=$SisDrive /on=$SisDrive /maxsize=5% | Out-Null; "Liberado: $(Fmt ([math]::Max(0, (Libre-Sistema) - $antes)))." }
+    puntos = { param($d) $antes = Libre-Sistema; & vssadmin.exe resize shadowstorage /for=$SisDrive /on=$SisDrive /maxsize=5% | Out-Null; "Liberado: $(Fmt ([math]::Max([double]0, (Libre-Sistema) - $antes)))." }
     hibernar = { param($d) & powercfg.exe /h off | Out-Null; 'Hibernación desactivada.' }
-    winsxs = { param($d) $antes = Libre-Sistema; & Dism.exe /Online /Cleanup-Image /StartComponentCleanup | Out-Host; "Liberado: $(Fmt ([math]::Max(0, (Libre-Sistema) - $antes)))." }
+    winsxs = { param($d) $antes = Libre-Sistema; & Dism.exe /Online /Cleanup-Image /StartComponentCleanup | Out-Host; "Liberado: $(Fmt ([math]::Max([double]0, (Libre-Sistema) - $antes)))." }
     escaneo = {
         param($d)
         Update-MpSignature -ErrorAction SilentlyContinue
@@ -378,7 +379,23 @@ $Acciones = @{
         Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name EnableTransparency -Value 0 -Type DWord
         'Efectos desactivados. Cierra sesión o reinicia para verlo.'
     }
-    sfc = { param($d) & Dism.exe /Online /Cleanup-Image /RestoreHealth | Out-Host; & sfc.exe /scannow | Out-Host; 'Revisión terminada (el detalle queda en C:\Windows\Logs\CBS\CBS.log).' }
+    sfc = {
+        param($d)
+        # Chequeo rápido (segundos); la reparación profunda de DISM (hasta 1 hora) solo si hay componentes dañados
+        $chequeo = (& Dism.exe /Online /Cleanup-Image /CheckHealth) -join ' '
+        $danado = ($LASTEXITCODE -ne 0) -or ($chequeo -match 'reparable|repairable|irreparable|corrupt|dañ')
+        if ($danado) {
+            Write-Log '   Windows tiene componentes dañados: reparación profunda con DISM (puede tardar hasta 1 hora)...'
+            & Dism.exe /Online /Cleanup-Image /RestoreHealth | Out-Host
+        } else { Write-Log '   Componentes de Windows sanos; se revisan los archivos del sistema (SFC, 5-15 min)...' }
+        $sfc = (& sfc.exe /scannow) -join ' '
+        $txt = $sfc -replace "`0", ''
+        $resultado = if ($txt -match 'no encontr\S* ninguna infracci|did not find any integrity') { 'No se encontraron archivos dañados.' }
+                     elseif ($txt -match 'repar\S* correctamente|successfully repaired') { 'Se encontraron y repararon archivos dañados.' }
+                     elseif ($txt -match 'no pudo reparar|unable to fix') { 'Hay archivos dañados que no se pudieron reparar (ver C:\Windows\Logs\CBS\CBS.log).' }
+                     else { 'Revisión terminada (detalle en C:\Windows\Logs\CBS\CBS.log).' }
+        "$(if ($danado) { 'Se repararon componentes con DISM. ' })$resultado"
+    }
     optimizar = {
         param($d)
         $letra = $SisDrive.TrimEnd(':')
@@ -390,7 +407,7 @@ $Acciones = @{
         $antes = Libre-Sistema
         & attrib.exe +U -P "$($d.Ruta)\*" /S /D | Out-Null
         Start-Sleep -Seconds 5
-        "OneDrive liberará el espacio en los próximos minutos (liberado hasta ahora: $(Fmt ([math]::Max(0, (Libre-Sistema) - $antes))))."
+        "OneDrive liberará el espacio en los próximos minutos (liberado hasta ahora: $(Fmt ([math]::Max([double]0, (Libre-Sistema) - $antes))))."
     }
     outlook = {
         param($d)
@@ -483,20 +500,22 @@ if ($RestaurarInicio) {
 #  Modo: aplicar arreglos elegidos en la ventana (sin preguntas)
 # ============================================================================
 if ($Aplicar) {
-    $sel = @(Leer-Json $Aplicar | Sort-Object { [int]$_.Numero })
+    # Primero los rápidos, al final los largos (reparación de Windows, antivirus...); dentro de cada grupo, en su orden
+    $sel = @(Leer-Json $Aplicar | Sort-Object { [bool]$_.Lento }, { [int]$_.Numero })
     Write-Log "Aplicando $($sel.Count) arreglo(s)..."
-    $libre0 = Libre-Sistema
     $punto = Nuevo-PuntoRestauracion
-    $res = @(); $k = 0
+    # El total es la suma de lo que libera cada arreglo (así no descuenta el espacio del punto de restauración)
+    $res = @(); $k = 0; $ganado = [double]0
     foreach ($a in $sel) {
         $k++
         Write-Log "($k/$($sel.Count)) $($a.Nombre)..."
         if ($a.Admin -and -not $EsAdmin) { $res += [pscustomobject]@{ Id = $a.Id; Nombre = $a.Nombre; Ok = $false; Mensaje = 'Requiere administrador.' }; continue }
+        $libreAntes = Libre-Sistema
         try { $m = Invoke-Arreglo $a; $ok = $true } catch { $m = $_.Exception.Message; $ok = $false }
+        $ganado += [math]::Max([double]0, (Libre-Sistema) - $libreAntes)
         Write-Log ('{0}: {1} -> {2}' -f $(if ($ok) { 'APLICADO' } else { 'ERROR' }), $a.Nombre, $m)
         $res += [pscustomobject]@{ Id = $a.Id; Nombre = $a.Nombre; Ok = $ok; Mensaje = $m }
     }
-    $ganado = [math]::Max(0, (Libre-Sistema) - $libre0)
     $salida = if ($ArchivoResultado) { $ArchivoResultado } else { [IO.Path]::ChangeExtension($Aplicar, '.resultado.json') }
     Guardar-Json ([pscustomobject]@{ Resultados = $res; Liberado = $ganado; LiberadoTexto = (Fmt $ganado); PuntoRestauracion = $punto }) $salida
     Write-Log "Fin. Espacio liberado: $(Fmt $ganado)"
@@ -821,7 +840,8 @@ $carpetasNube = @($carpetasNube | Sort-Object Ruta -Unique)
 $filasNube = @(); $totalArchNube = 0
 foreach ($c in $carpetasNube) {
     Sub "$($c.Servicio): $($c.Ruta)"
-    $t = Get-TamanoCarpeta $c.Ruta
+    $t = Get-TamanoCarpeta $c.Ruta -SegundosMax 120
+    if ($t.Incompleto) { Sub "   Conteo detenido a los 2 min: hay al menos $('{0:N0}' -f $t.Archivos) archivos." }
     $totalArchNube += $t.Archivos
     $filasNube += [pscustomobject]@{ 'Servicio' = $c.Servicio; 'Carpeta' = $c.Ruta; 'Archivos' = ('{0:N0}' -f $t.Archivos)
                                      'Ocupa en disco' = (Fmt $t.Bytes); 'Solo en la nube' = (Fmt $t.BytesNube) }
@@ -833,7 +853,7 @@ foreach ($c in $carpetasNube) {
     }
     if ($c.Servicio -eq 'OneDrive' -and $t.Bytes -ge 5GB) {
         $id = 'onedrive_' + [math]::Abs($c.Ruta.GetHashCode())
-        Add-Arreglo -Id $id -Tipo 'onedrive' -Nombre "Liberar espacio de OneDrive ($($c.Ruta | Split-Path -Leaf))" -Riesgo 'Medio' -Bytes $t.Bytes `
+        Add-Arreglo -Id $id -Tipo 'onedrive' -Nombre "Liberar espacio de OneDrive ($($c.Ruta | Split-Path -Leaf))" -Riesgo 'Medio' -Bytes $t.Bytes -Duracion '1-5 min' `
             -QueHace 'Marca los archivos de OneDrive como «solo en línea»: siguen apareciendo en tus carpetas, pero ya no ocupan espacio en el disco.' `
             -Porque 'OneDrive está guardando una copia completa de todo en esta PC; eso llena el disco y hace más pesado el trabajo del antivirus y del indexador.' `
             -Afecta 'Para abrir un archivo necesitarás internet la primera vez (se descarga solo al abrirlo). NO se borra nada de la nube. Si quieres alguno siempre disponible: clic derecho > «Mantener siempre en este dispositivo».' `
@@ -971,7 +991,8 @@ foreach ($L in $Limpiezas) {
     $filasEspacio += [pscustomobject]@{ 'Qué es' = $L.Nombre; 'Tamaño' = (Fmt $bytes); 'Por qué sobra' = $L.Porque }
     if ($bytes -ge $L.Minimo) {
         $totalRecuperable += $bytes
-        Add-Arreglo -Id $L.Id -Tipo $L.Tipo -Nombre $L.Nombre -Riesgo $L.Riesgo -Bytes $bytes -QueHace $L.QueHace -Porque $L.Porque -Afecta $L.Afecta -Admin:$L.Admin `
+        $dur = if ($L.Id -eq 'windowsold') { '2-10 min' } elseif ($bytes -ge 5GB) { '1-3 min' } else { 'Menos de 1 min' }
+        Add-Arreglo -Id $L.Id -Tipo $L.Tipo -Nombre $L.Nombre -Riesgo $L.Riesgo -Bytes $bytes -QueHace $L.QueHace -Porque $L.Porque -Afecta $L.Afecta -Admin:$L.Admin -Duracion $dur `
             -Datos @{ Rutas = $rutas; DiasMin = [int]$L.DiasMin; Filtro = $L.Filtro; Procesos = $L.Procesos; App = $L.App }
     }
 }
@@ -1007,7 +1028,7 @@ if ($hiber -and $hiber.Length -gt 0) {
 
 # Componentes antiguos de Windows (WinSxS)
 if ($EsAdmin) {
-    Add-Arreglo -Id 'winsxs' -Nombre 'Limpiar componentes antiguos de Windows (WinSxS)' -Riesgo 'Bajo' -Admin `
+    Add-Arreglo -Id 'winsxs' -Nombre 'Limpiar componentes antiguos de Windows (WinSxS)' -Riesgo 'Bajo' -Admin -Duracion '5-20 min' -Lento `
         -QueHace 'Usa la herramienta oficial de Microsoft (DISM) para borrar versiones viejas de componentes que las actualizaciones reemplazaron.' `
         -Porque 'Cada actualización deja la versión anterior de los archivos del sistema. Con los años pueden ser varios GB.' `
         -Afecta 'Ya no se podrán desinstalar las actualizaciones que ya están instaladas. Tarda 5-20 minutos.'
@@ -1025,11 +1046,12 @@ if ($totalRecuperable -ge 5GB) {
 
 # Tu carpeta de usuario: archivos grandes y Descargas antiguas
 Sub 'Buscando archivos grandes en tu carpeta de usuario...'
-$perfil = Get-TamanoCarpeta -Ruta $env:USERPROFILE -MinGrande 500MB -Excluir @($carpetasNube.Ruta)
+$perfil = Get-TamanoCarpeta -Ruta $env:USERPROFILE -MinGrande 500MB -Excluir @($carpetasNube.Ruta) -SegundosMax 90
+if ($perfil.Incompleto) { Sub 'Búsqueda de archivos grandes detenida a los 90 s (usuario muy grande): se muestran los encontrados.' }
 $Datos.Perfil_GB = [math]::Round($perfil.Bytes / 1GB, 1)
 $grandes = @($perfil.Grandes | Sort-Object Bytes -Descending | Select-Object -First 15)
 if ($grandes) {
-    Add-Tabla 'Archivos grandes en tu usuario (más de 500 MB, sin contar la nube)' 'Solo informativo: la herramienta NUNCA borra tus documentos. Revisa si alguno ya no lo necesitas.' `
+    Add-Tabla 'Archivos grandes en tu usuario (más de 500 MB, sin contar la nube)' "Solo informativo: la herramienta NUNCA borra tus documentos. Revisa si alguno ya no lo necesitas.$(if ($perfil.Incompleto) { ' (Revisión parcial: se detuvo a los 90 segundos.)' })" `
         ($grandes | ForEach-Object { [pscustomobject]@{ 'Archivo' = $_.Ruta; 'Tamaño' = (Fmt $_.Bytes); 'Última modificación' = $_.Fecha.ToString('dd/MM/yyyy') } }) @('Archivo', 'Tamaño', 'Última modificación')
 }
 $desc = Join-Path $env:USERPROFILE 'Downloads'
@@ -1095,7 +1117,7 @@ if ($SinDuplicados) {
                                    'Se conserva' = $_.Conservar; 'Copias' = (@($_.Copias) -join "  |  ") } }) `
             @('Archivo', 'Copias extra', 'Tamaño c/u', 'Se conserva', 'Copias')
         if ($bDup -ge 100MB) {
-            Add-Arreglo -Id 'duplicados' -Nombre 'Enviar a la Papelera las copias duplicadas' -Riesgo 'Medio' -Bytes $bDup `
+            Add-Arreglo -Id 'duplicados' -Nombre 'Enviar a la Papelera las copias duplicadas' -Riesgo 'Medio' -Bytes $bDup -Duracion '1-3 min' `
                 -QueHace 'Envía a la Papelera las copias repetidas y conserva una de cada archivo (prioriza la que está en la nube, fuera de Descargas y con el nombre original).' `
                 -Porque "Hay $(Fmt $bDup) en archivos que están repetidos con exactamente el mismo contenido." `
                 -Afecta 'Las copias van a la PAPELERA: si te equivocas, las recuperas desde ahí (no vacíes la Papelera hasta revisar). Si una copia está en OneDrive, también se quita de la nube (queda en la papelera de OneDrive). A veces una copia en otra carpeta es intencional (por ejemplo, un archivo enviado a un cliente): revisa la lista antes. Las copias de más de 2 GB no se mueven solas.' `
@@ -1116,7 +1138,7 @@ $avActivos = @($av | Where-Object { ([int]$_.productState -band 0x1000) -ne 0 })
 $Datos.Antivirus = (($avActivos | ForEach-Object displayName) -join ', ')
 $mp = Get-MpComputerStatus -ErrorAction SilentlyContinue
 if ($mp -and $mp.AntivirusEnabled) {
-    Add-Arreglo -Id 'escaneo' -Nombre 'Buscar virus (análisis rápido de Windows Defender)' -Riesgo 'Bajo' -Admin `
+    Add-Arreglo -Id 'escaneo' -Nombre 'Buscar virus (análisis rápido de Windows Defender)' -Riesgo 'Bajo' -Admin -Duracion '5-15 min' -Lento `
         -QueHace 'Ejecuta un análisis rápido con el antivirus de Windows.' `
         -Porque 'Descarta que un virus o programa malicioso esté consumiendo recursos.' `
         -Afecta 'Nada. La PC puede ir algo más lenta durante el análisis (5-15 min). Si encuentra algo, Defender lo pone en cuarentena.'
@@ -1171,12 +1193,12 @@ if ($vfx -ne 2 -and $vfx -ne 3) {
         -Afecta 'Windows se ve más simple (sin animaciones). Se aplica al cerrar sesión. Se revierte en Sistema > Configuración avanzada > Rendimiento.'
 }
 if ($EsAdmin) {
-    Add-Arreglo -Id 'sfc' -Nombre 'Revisar y reparar archivos de Windows' -Riesgo 'Bajo' -Admin `
+    Add-Arreglo -Id 'sfc' -Nombre 'Revisar y reparar archivos de Windows' -Riesgo 'Bajo' -Admin -Duracion '10-15 min (hasta 1 h si hay daños)' -Lento `
         -QueHace 'Ejecuta las herramientas oficiales de Microsoft (DISM y SFC) que comparan los archivos de Windows con los originales y reparan los dañados.' `
         -Porque 'Apagones, discos con errores o actualizaciones interrumpidas pueden dañar archivos del sistema y causar lentitud o errores.' `
         -Afecta 'Nada. Tarda entre 15 y 40 minutos; se puede seguir usando la PC.'
     $esHDD = ($Datos.DiscoSistema -like 'HDD*')
-    Add-Arreglo -Id 'optimizar' -Nombre "Optimizar la unidad $SisDrive" -Riesgo 'Bajo' -Admin `
+    Add-Arreglo -Id 'optimizar' -Nombre "Optimizar la unidad $SisDrive" -Riesgo 'Bajo' -Admin -Duracion $(if ($esHDD) { '30-90 min' } else { 'Menos de 1 min' }) -Lento:$esHDD `
         -QueHace $(if ($esHDD) { 'Desfragmenta el disco (junta las partes dispersas de los archivos).' } else { 'Ejecuta TRIM en el SSD (le avisa qué espacio está libre para que siga siendo rápido).' }) `
         -Porque 'Mantiene el disco trabajando a su velocidad normal, sobre todo después de borrar muchos archivos.' `
         -Afecta 'Nada. En un disco mecánico puede tardar bastante.' -Datos @{ EsHDD = $esHDD }
@@ -1194,7 +1216,7 @@ $Datos.Puntaje = $puntaje
 $HallOrd = @($Hallazgos | Sort-Object { $orden[$_.Nivel] })
 # Orden: riesgo bajo primero y luego por espacio. Así la Papelera se vacía ANTES de mandar duplicados a ella.
 $i = 0
-foreach ($a in @($Arreglos | Sort-Object { @{ Bajo = 0; Medio = 1; Alto = 2 }[$_.Riesgo] }, { -$_.Bytes })) { $i++; $a.Numero = $i }
+foreach ($a in @($Arreglos | Sort-Object { @{ Bajo = 0; Medio = 1; Alto = 2 }[$_.Riesgo] }, { [bool]$_.Lento }, { -$_.Bytes })) { $i++; $a.Numero = $i }
 $ArrOrd = @($Arreglos | Sort-Object Numero)
 
 $comp = $null
@@ -1277,7 +1299,7 @@ $archivoJson = Join-Path $CarpetaSalida "Diagnostico_${Equipo}_$Marca.json"
 $resultado = [pscustomobject]@{
     Datos = $Datos; Puntaje = $puntaje; Estado = $estado; EsAdmin = $EsAdmin; InformeHtml = $archivoHtml; ArchivoJson = $archivoJson
     Hallazgos = $HallOrd
-    Arreglos = @($ArrOrd | Select-Object Id, Tipo, Numero, Nombre, QueHace, Porque, Afecta, Riesgo, Bytes, Admin, Datos)
+    Arreglos = @($ArrOrd | Select-Object Id, Tipo, Numero, Nombre, QueHace, Porque, Afecta, Riesgo, Bytes, Admin, Duracion, Lento, Datos)
 }
 Guardar-Json $resultado $archivoJson
 if ($ArchivoResultado) { Copy-Item -LiteralPath $archivoJson -Destination $ArchivoResultado -Force }
@@ -1325,7 +1347,7 @@ elseif ($sel -match '^\s*[tT]\s*$') { $elegidos = $ArrOrd }
 elseif ($sel.Trim()) { $nums = $sel -split '[,; ]+' | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }; $elegidos = @($ArrOrd | Where-Object { $nums -contains $_.Numero }) }
 if (-not $elegidos) { Write-Host '   No se aplicó ningún cambio.'; Write-Log 'Fin sin arreglos (el usuario no eligió).'; return }
 
-$libreInicial = Libre-Sistema
+$ganado = [double]0
 $puntoCreado = $false
 $aplicados = 0
 foreach ($a in $elegidos) {
@@ -1343,6 +1365,7 @@ foreach ($a in $elegidos) {
         if (-not (Nuevo-PuntoRestauracion) -and -not (Confirmar '   ¿Continuar sin punto de restauración?')) { break }
         $puntoCreado = $true
     }
+    $libreAntes = Libre-Sistema
     try {
         Write-Host '   Aplicando...' -ForegroundColor DarkGray
         $res = Invoke-Arreglo $a
@@ -1353,9 +1376,9 @@ foreach ($a in $elegidos) {
         Write-Host "   ERROR: $($_.Exception.Message)" -ForegroundColor Red
         Write-Log "ERROR en $($a.Nombre): $($_.Exception.Message)"
     }
+    $ganado += [math]::Max([double]0, (Libre-Sistema) - $libreAntes)
 }
 
-$ganado = [math]::Max(0, (Libre-Sistema) - $libreInicial)
 Write-Host ''
 Write-Host '  ================================================' -ForegroundColor Cyan
 Write-Host "   Arreglos aplicados: $aplicados   ·   Espacio liberado en ${SisDrive}: $(Fmt $ganado)" -ForegroundColor Green

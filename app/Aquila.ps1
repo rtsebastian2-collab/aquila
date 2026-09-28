@@ -171,13 +171,13 @@ $tabDiag.Controls.Add($splitD)
 # Arreglos
 $panelArrBtn = Nuevo FlowLayoutPanel @{ Dock = 'Bottom'; Height = 58; Padding = (New-Object System.Windows.Forms.Padding(10, 10, 10, 8)); BackColor = $Paleta.Fondo }
 $btnAplicar = Boton 'Aplicar los marcados…' 200 -Primario; $btnAplicar.Enabled = $false
-$btnMarcarBajo = Boton 'Marcar los de riesgo bajo' 210
+$btnMarcarBajo = Boton 'Marcar los rápidos y seguros' 230
 $btnDesmarcar = Boton 'Desmarcar todo' 140
 $btnRestaurar = Boton 'Restaurar programas de inicio' 240
 $panelArrBtn.Controls.AddRange(@($btnAplicar, $btnMarcarBajo, $btnDesmarcar, $btnRestaurar))
 $splitA = Nuevo SplitContainer @{ Dock = 'Fill'; Orientation = 'Horizontal'; BackColor = $Paleta.Borde }
 $lvArr = Nuevo ListView @{ Dock = 'Fill'; View = 'Details'; CheckBoxes = $true; FullRowSelect = $true; HideSelection = $false; MultiSelect = $false; BorderStyle = 'None' }
-[void]$lvArr.Columns.Add('#', 40); [void]$lvArr.Columns.Add('Arreglo', 470); [void]$lvArr.Columns.Add('Libera', 90); [void]$lvArr.Columns.Add('Riesgo', 80); [void]$lvArr.Columns.Add('Estado', 200)
+[void]$lvArr.Columns.Add('#', 40); [void]$lvArr.Columns.Add('Arreglo', 470); [void]$lvArr.Columns.Add('Libera', 90); [void]$lvArr.Columns.Add('Riesgo', 80); [void]$lvArr.Columns.Add('Tiempo', 150); [void]$lvArr.Columns.Add('Estado', 170)
 $rtbArr = Nuevo RichTextBox @{ Dock = 'Fill'; ReadOnly = $true; BorderStyle = 'None'; BackColor = $Paleta.Blanco }
 $splitA.Panel1.BackColor = $Paleta.Blanco; $splitA.Panel2.BackColor = $Paleta.Blanco
 $splitA.Panel2.Padding = New-Object System.Windows.Forms.Padding(16, 10, 12, 10)
@@ -220,7 +220,7 @@ function Ajustar-Paneles {
         $splitD.SplitterDistance = [int]($splitD.Width * 0.5)
         $splitA.SplitterDistance = [int]($splitA.Height * 0.55)
         $lvHall.Columns[2].Width = [math]::Max(200, $lvHall.ClientSize.Width - $lvHall.Columns[0].Width - $lvHall.Columns[1].Width - 4)
-        $lvArr.Columns[1].Width = [math]::Max(250, $lvArr.ClientSize.Width - 40 - 90 - 80 - 200 - 4)
+        $lvArr.Columns[1].Width = [math]::Max(250, $lvArr.ClientSize.Width - 40 - 90 - 80 - 150 - 170 - 4)
         $lblVigInfo.Width = $tabVig.ClientSize.Width - 40
         $lbEpisodios.Width = $tabVig.ClientSize.Width - 40; $lbEpisodios.Height = [math]::Max(120, $tabVig.ClientSize.Height - 300)
     } catch {}
@@ -264,7 +264,7 @@ function Mostrar-Arreglo($a) {
     if (-not $a) { return }
     Rtb-Agregar $rtbArr "#$($a.Numero)  $($a.Nombre)`n" -Titulo -Color $Paleta.Marino
     $lib = if ([double]$a.Bytes -gt 0) { "Libera aprox. $(Fmt $a.Bytes)   ·   " } else { '' }
-    Rtb-Agregar $rtbArr "$lib Riesgo: $($a.Riesgo)$(if ($a.Admin -and -not $EsAdmin) { '   ·   REQUIERE ADMINISTRADOR' })`n`n" -Color $Paleta.Suave
+    Rtb-Agregar $rtbArr "$lib Riesgo: $($a.Riesgo)   ·   Tarda: $(if ($a.Duracion) { $a.Duracion } else { 'menos de 1 min' })$(if ($a.Admin -and -not $EsAdmin) { '   ·   REQUIERE ADMINISTRADOR' })`n`n" -Color $Paleta.Suave
     Rtb-Agregar $rtbArr "Qué hace:  " -Negrita -Color $Paleta.Marino; Rtb-Agregar $rtbArr "$($a.QueHace)`n`n"
     Rtb-Agregar $rtbArr "Por qué:  " -Negrita -Color $Paleta.Marino; Rtb-Agregar $rtbArr "$($a.Porque)`n`n"
     Rtb-Agregar $rtbArr "¿Afecta algo?  " -Negrita -Color $ColorNivel.Alto; Rtb-Agregar $rtbArr "$($a.Afecta)`n"
@@ -291,6 +291,7 @@ function Cargar-Resultado([string]$ruta) {
         [void]$it.SubItems.Add([string]$a.Nombre)
         [void]$it.SubItems.Add($(if ([double]$a.Bytes -gt 0) { Fmt $a.Bytes } else { '—' }))
         [void]$it.SubItems.Add([string]$a.Riesgo)
+        [void]$it.SubItems.Add($(if ($a.Duracion) { [string]$a.Duracion } else { 'Menos de 1 min' }))
         [void]$it.SubItems.Add($(if ($a.Admin -and -not $EsAdmin) { 'Requiere administrador' } else { '' }))
         $it.Tag = $a
         if ($a.Riesgo -eq 'Medio') { $it.ForeColor = $ColorNivel.Medio }
@@ -334,7 +335,7 @@ function Dialogo-Confirmar($Lista) {
     Rtb-Agregar $rtb "Se aplicarán $(@($Lista).Count) arreglo(s)`n" -Titulo -Color $Paleta.Marino
     Rtb-Agregar $rtb "$(if ($EsAdmin) { 'Antes de empezar se creará un punto de restauración de Windows para poder deshacer los cambios del sistema.' } else { 'Sin permisos de administrador no se puede crear punto de restauración.' })`n`n" -Color $Paleta.Suave
     foreach ($a in $Lista) {
-        Rtb-Agregar $rtb "■ #$($a.Numero)  $($a.Nombre)$(if ([double]$a.Bytes -gt 0) { "   (libera ~$(Fmt $a.Bytes))" })`n" -Negrita -Color $Paleta.Marino
+        Rtb-Agregar $rtb "■ #$($a.Numero)  $($a.Nombre)$(if ([double]$a.Bytes -gt 0) { "   (libera ~$(Fmt $a.Bytes))" })   ·   tarda: $(if ($a.Duracion) { $a.Duracion } else { 'menos de 1 min' })`n" -Negrita -Color $Paleta.Marino
         Rtb-Agregar $rtb "   Qué hace: $($a.QueHace)`n"
         Rtb-Agregar $rtb "   Por qué: $($a.Porque)`n"
         Rtb-Agregar $rtb "   ¿Afecta algo? $($a.Afecta)`n`n" -Color $ColorNivel.Alto
@@ -484,9 +485,9 @@ $lvArr.Add_SelectedIndexChanged({ if ($lvArr.SelectedItems.Count) { Mostrar-Arre
 $lvArr.Add_ItemCheck({
     param($s, $e)
     $a = $lvArr.Items[$e.Index].Tag
-    if ($e.NewValue -eq 'Checked' -and (($a.Admin -and -not $EsAdmin) -or $lvArr.Items[$e.Index].SubItems[4].Text -like 'Aplicado*')) { $e.NewValue = 'Unchecked' }
+    if ($e.NewValue -eq 'Checked' -and (($a.Admin -and -not $EsAdmin) -or $lvArr.Items[$e.Index].SubItems[5].Text -like 'Aplicado*')) { $e.NewValue = 'Unchecked' }
 })
-$btnMarcarBajo.Add_Click({ foreach ($it in $lvArr.Items) { $it.Checked = ($it.Tag.Riesgo -eq 'Bajo') } })
+$btnMarcarBajo.Add_Click({ foreach ($it in $lvArr.Items) { $it.Checked = ($it.Tag.Riesgo -eq 'Bajo' -and -not $it.Tag.Lento) } })
 $btnDesmarcar.Add_Click({ foreach ($it in $lvArr.Items) { $it.Checked = $false } })
 
 $btnAplicar.Add_Click({
@@ -541,7 +542,7 @@ $btnAplicar.Add_Click({
         if (-not (Test-Path -LiteralPath $script:ResAplicar)) { Mensaje 'No se pudo leer el resultado. Revisa la pestaña «Registro».' 'Aviso' 'Warning'; return }
         $r = Leer-Json $script:ResAplicar
         $lineas = foreach ($x in @($r.Resultados)) {
-            foreach ($it in $lvArr.Items) { if ($it.Tag.Id -eq $x.Id) { $it.Checked = $false; $it.SubItems[4].Text = $(if ($x.Ok) { 'Aplicado' } else { 'Error' }); $it.ForeColor = [System.Drawing.Color]::Gray } }
+            foreach ($it in $lvArr.Items) { if ($it.Tag.Id -eq $x.Id) { $it.Checked = $false; $it.SubItems[5].Text = $(if ($x.Ok) { 'Aplicado' } else { 'Error' }); $it.ForeColor = [System.Drawing.Color]::Gray } }
             "$(if ($x.Ok) { '✔' } else { '✖' })  $($x.Nombre)`n      $($x.Mensaje)"
         }
         $lblEstado.Text = "Arreglos aplicados. Espacio liberado: $($r.LiberadoTexto)."
